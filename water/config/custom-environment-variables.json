@@ -1,0 +1,10 @@
+{
+  "email": {
+    "user": "TMKN_EMAIL_USER",
+    "password": "TMKN_EMAIL_PW"
+  },
+  "db": {
+    "user": "TMKN_DB_USER",
+    "password": "TMKN_DB_PW"
+  }
+}
