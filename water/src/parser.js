@@ -22,6 +22,20 @@ const regexes = {
   end: /\s*MESSAGES: .+/,
 };
 
+function shuffleDate(nobodyUsesThisFormat) {
+  const [_, dd, mo, yyyy, hh, mi, ss] = nobodyUsesThisFormat.match(
+    /(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})/
+  );
+  return `${yyyy}-${mo}-${dd}T${hh}:${mi}:${ss}-05`;
+}
+
+function splitLoggerType(mumbo) {
+  const [_, type, model, v] = mumbo.match(
+    /([a-zA-Z ]+), ([a-zA-Z0-9\.]+), ([0-9\.]+)/
+  );
+  return { type, model, v };
+}
+
 function parse(horror) {
   const lang = P.createLanguage({
     dataLine: (r) =>
@@ -31,11 +45,8 @@ function parse(horror) {
         P.regexp(regexes.number).skip(P.optWhitespace)
       ).map((arr) => {
         const [timestamp, temp, other] = arr;
-        const [_, dd, mo, yyyy, hh, mi, ss] = timestamp.match(
-          /(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})/
-        );
         return {
-          timestamp: `${yyyy}-${mo}-${dd}T${hh}:${mi}:${ss}-05`,
+          timestamp: shuffleDate(timestamp),
           temp: Number(temp),
           other: Number(other),
         };
@@ -74,9 +85,10 @@ function parse(horror) {
           state,
           startLogger,
         ] = arr;
+        const model = splitLoggerType(type);
         return {
           logger: Number(logger),
-          type,
+          ...model,
           serial,
           battery: Number(battery),
           logs: Number(logs),
@@ -84,7 +96,7 @@ function parse(horror) {
           memoryMode,
           logType,
           state,
-          startLogger,
+          startLogger: shuffleDate(startLogger),
         };
       }),
     LevelSender: (r) =>
@@ -112,10 +124,10 @@ function parse(horror) {
           serial,
           location,
           battery: Number(battery),
-          sampleRate: Number(sampleRate),
-          reportRate: Number(reportRate),
+          sampleRate: Number(sampleRate), // minutes
+          reportRate: Number(reportRate) * 60, // minutes
           state,
-          startReport,
+          startReport: shuffleDate(startReport),
         };
       }),
     report: (r) =>
@@ -127,7 +139,23 @@ function parse(horror) {
         r.dataSection.skip(P.regexp(regexes.end)).skip(P.optWhitespace)
       ).map((arr) => {
         const [levelsender, l1, l2, sec1, sec2] = arr;
-        return { levelsender, loggers: [l1, l2], data: [sec1, sec2] };
+        const levelogger = [l1, l2].find((l) => l.type.includes("Levelogger"));
+        const barologger = [l1, l2].find((l) => l.type.includes("Barologger"));
+        if (!levelogger)
+          throw new Error("No Levelogger for " + levelsender.serial);
+        if (!barologger)
+          throw new Error("No Barologger for " + levelsender.serial);
+        const levelData = [sec1, sec2].find(
+          (d) => d.logger === levelogger.logger
+        );
+        const baroData = [sec1, sec2].find(
+          (d) => d.logger === barologger.logger
+        );
+        if (!levelData)
+          throw new Error("No Level data for " + levelsender.serial);
+        if (!baroData)
+          throw new Error("No pressure data for " + levelsender.serial);
+        return { levelsender, levelogger, barologger, levelData, baroData };
       }),
   });
   return lang.report.tryParse(horror);

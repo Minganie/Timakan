@@ -1,4 +1,5 @@
 const parse = require("./src/parser");
+const save = require("./src/saver");
 const txt = `
 
 LevelSender
@@ -68,6 +69,13 @@ Time, Temperature( C), Level(kPa)
 MESSAGES: Email report 16, LS reporting, L1 stopped, L2 stopped, 
 
 `;
+async function main() {
+  const report = parse(txt);
+  report.email = {
+    num: 1,
+    sent: "2018-12-21T12:30:00-04",
+  };
+  await save(report);
+}
 
-const res = parse(txt);
-console.log(res);
+main().catch((e) => console.error(e));
