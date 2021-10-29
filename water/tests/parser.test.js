@@ -1,4 +1,4 @@
-const parse = require("./src/parser");
+const parse = require("../src/parser");
 const txt = `
 
 LevelSender
@@ -68,6 +68,28 @@ Time, Temperature( C), Level(kPa)
 MESSAGES: Email report 16, LS reporting, L1 stopped, L2 stopped, 
 
 `;
-
-const res = parse(txt);
-console.log(res);
+describe("parser", () => {
+  let db;
+  beforeAll(() => {
+    db = require("../src/db");
+  });
+  afterAll(async () => {
+    await db.end();
+  });
+  it("can parse a text string", () => {
+    const report = parse(txt);
+    expect(report).toBeTruthy();
+    expect(report.levelsender.serial).toEqual("284272");
+    expect(report.loggers.length).toBe(2);
+    expect(report.data.length).toBe(2);
+  });
+  it("can parse the text from the db", async () => {
+    const rows = await db.query("SELECT body FROM emails WHERE id=1", []);
+    const body = rows[0].body;
+    const report = parse(body);
+    expect(report).toBeTruthy();
+    expect(report.levelsender.serial).toEqual("284272");
+    expect(report.loggers.length).toBe(2);
+    expect(report.data.length).toBe(2);
+  });
+});
