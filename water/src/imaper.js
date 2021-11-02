@@ -4,6 +4,8 @@ const debug = require("debug")("timakan:imaper");
 const { email } = require("config");
 const { simpleParser } = require("mailparser");
 
+const { getDateFromHeaders } = require("./util");
+
 const raw = () => {
   return new Promise((resolve, reject) => {
     const imap = new Imap({
@@ -66,14 +68,32 @@ const raw = () => {
   });
 };
 
+function stringifyHeaders(headers) {
+  const json = {};
+  headers.forEach((v, k) => {
+    json[k] = v;
+  });
+  return JSON.stringify(json);
+}
+
 const imaper = async () => {
   try {
     const raws = await raw();
     const parsed = [];
     for (const raw of raws) {
-      debug("Parsing one");
       const pars = await simpleParser(raw);
-      parsed.push(pars);
+      if (pars.subject.includes("LS Report")) {
+        const date = getDateFromHeaders(pars);
+        if (date) {
+          pars.receivedOn = date;
+          parsed.push(pars);
+        } else {
+          throw new Error(
+            "Couldn't find the date from these headers: " +
+              stringifyHeaders(pars.headers)
+          );
+        }
+      }
     }
     return parsed;
   } catch (e) {
