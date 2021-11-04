@@ -2,15 +2,16 @@ const P = require("parsimmon");
 
 const regexes = {
   serial: /\s*Serial: (\d+)/,
-  location: /\s*Location: ([a-zA-Z\- ]+)/,
+  location: /\s*Location: ([a-zA-Z0-9\.\- ]+)/,
   battery: /\s*Battery: (\d+)%/,
-  sampleRate: /\s*Sample Rate: (\d+) minutes/,
-  reportRate: /\s*Report Rate: (\d+) hours/,
+  sampleRate: /\s*Sample Rate: (\d+ (?:minutes|hours))/,
+  reportRate: /\s*Report Rate: (\d+ (?:minutes|hours))/,
+  signalStrength: /\s*Signal Strength: (\d+)/,
   state: /\s*State: ([a-z]+)/,
   startReport: /\s*Start Report: (\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2})/,
   logger: /\s*Logger (\d)/,
-  type: /\s*Location:\s*Type: ([a-zA-Z ]+, [a-zA-Z0-9\.]+, [0-9\.]+)/,
-  logs: /\s*Total Logs: (\d+) of 40000/,
+  type: /\s*Location:.+?\s*Type: ([a-zA-Z0-9 ]+, [a-zA-Z0-9\.]+, [0-9\.]+)/,
+  logs: /\s*Total Logs: (\d+ of \d+)/,
   logRate: /\s*Log Rate: (\d+) seconds/,
   memoryMode: /\s*Memory Mode: ([a-z]+)/,
   logType: /\s*Log Type: ([a-z]+)/,
@@ -19,7 +20,7 @@ const regexes = {
   dataHeader: /\s*Time, Temperature\( C\), ([a-zA-Z\(\)]+)\s*/,
   number: /-?\d+(\.\d+)?/,
   timestamp: /(\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2})/,
-  end: /\s*MESSAGES: .+/,
+  end: /\s*MESSAGES: .*/,
 };
 
 function shuffleDate(nobodyUsesThisFormat) {
@@ -31,9 +32,26 @@ function shuffleDate(nobodyUsesThisFormat) {
 
 function splitLoggerType(mumbo) {
   const [_, type, model, v] = mumbo.match(
-    /([a-zA-Z ]+), ([a-zA-Z0-9\.]+), ([0-9\.]+)/
+    /^([a-zA-Z0-9 ]+), ([a-zA-Z0-9\.]+), ([0-9\.]+)/
   );
   return { type, model, v };
+}
+
+function getDurationMinutes(mumbo) {
+  const [_, n, units] = mumbo.match(/\s*(\d+) (minutes|hours)/);
+  switch (units) {
+    case "minutes":
+      return Number(n);
+    case "hours":
+      return Number(n) * 60;
+    default:
+      throw new Error("Unknown units in:" + mumbo);
+  }
+}
+
+function splitLogNumbers(mumbo) {
+  const [_, n, total] = mumbo.match(/(\d+) of (\d+)/);
+  return { n, total };
 }
 
 function parse(horror) {
@@ -86,12 +104,14 @@ function parse(horror) {
           startLogger,
         ] = arr;
         const model = splitLoggerType(type);
+        const { n, total } = splitLogNumbers(logs);
         return {
           logger: Number(logger),
           ...model,
           serial,
           battery: Number(battery),
-          logs: Number(logs),
+          logs: Number(n),
+          totalLogs: Number(total),
           logRate: Number(logRate),
           memoryMode,
           logType,
@@ -108,6 +128,7 @@ function parse(horror) {
         P.regexp(regexes.battery, 1).skip(P.optWhitespace),
         P.regexp(regexes.sampleRate, 1).skip(P.optWhitespace),
         P.regexp(regexes.reportRate, 1).skip(P.optWhitespace),
+        P.regexp(regexes.signalStrength, 1).atMost(1),
         P.regexp(regexes.state, 1).skip(P.optWhitespace),
         P.regexp(regexes.startReport, 1).skip(P.optWhitespace)
       ).map((arr) => {
@@ -117,6 +138,7 @@ function parse(horror) {
           battery,
           sampleRate,
           reportRate,
+          signalStrength,
           state,
           startReport,
         ] = arr;
@@ -124,8 +146,9 @@ function parse(horror) {
           serial,
           location,
           battery: Number(battery),
-          sampleRate: Number(sampleRate), // minutes
-          reportRate: Number(reportRate) * 60, // minutes
+          sampleRate: getDurationMinutes(sampleRate), // minutes
+          reportRate: getDurationMinutes(reportRate),
+          signalStrength,
           state,
           startReport: shuffleDate(startReport),
         };
@@ -136,7 +159,7 @@ function parse(horror) {
         r.Logger,
         r.Logger,
         r.dataSection,
-        r.dataSection.skip(P.regexp(regexes.end)).skip(P.optWhitespace)
+        r.dataSection.skip(P.regexp(regexes.end)).skip(P.all)
       ).map((arr) => {
         const [levelsender, l1, l2, sec1, sec2] = arr;
         const levelogger = [l1, l2].find((l) => l.type.includes("Levelogger"));

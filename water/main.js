@@ -1,5 +1,9 @@
 const parse = require("./src/parser");
 const save = require("./src/saver");
+const imaper = require("./src/imaper");
+const { empty, reread } = require("./src/rereader");
+const db = require("./src/db");
+const debug = require("debug")("timakan:main");
 const txt = `
 
 LevelSender
@@ -70,12 +74,17 @@ MESSAGES: Email report 16, LS reporting, L1 stopped, L2 stopped,
 
 `;
 async function main() {
-  const report = parse(txt);
-  report.email = {
-    num: 1,
-    sent: "2018-12-21T12:30:00-04",
-  };
-  await save(report);
+  // const report = parse(txt);
+  // report.email = {
+  //   num: 1,
+  //   sent: "2018-12-21T12:30:00-04",
+  // };
+  // await save(report);
+
+  await empty();
+  await reread();
+
+  await db.end();
 }
 
 main().catch((e) => console.error(e));

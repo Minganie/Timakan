@@ -5,6 +5,7 @@ const { email } = require("config");
 const { simpleParser } = require("mailparser");
 
 const { getDateFromHeaders } = require("./util");
+const parse = require("./parser");
 
 const raw = () => {
   return new Promise((resolve, reject) => {
@@ -18,8 +19,8 @@ const raw = () => {
 
     imap.once("ready", function () {
       imap.openBox("INBOX", true, function (err, box) {
-        if (err) throw err;
-        const f = imap.seq.fetch("*", {
+        if (err) return reject(err);
+        const f = imap.seq.fetch("1:*", {
           bodies: "",
           struct: true,
         });
@@ -34,7 +35,7 @@ const raw = () => {
             });
             stream.once("end", function () {
               messages.push(buffer);
-              debug("streamed one");
+              debug("streamed", prefix);
             });
           });
           msg.once("attributes", function (attrs) {
@@ -47,6 +48,7 @@ const raw = () => {
         });
         f.once("error", function (err) {
           console.error("Fetch error: " + err);
+          reject(err);
         });
         f.once("end", function () {
           debug("Done fetching all messages!");
@@ -58,6 +60,7 @@ const raw = () => {
 
     imap.once("error", function (err) {
       console.error(err);
+      reject(err);
     });
 
     imap.once("end", function () {
@@ -79,18 +82,22 @@ function stringifyHeaders(headers) {
 const imaper = async () => {
   try {
     const raws = await raw();
-    const parsed = [];
+    const reports = [];
     for (const raw of raws) {
-      const pars = await simpleParser(raw);
-      if (pars.subject.includes("LS Report")) {
-        const date = getDateFromHeaders(pars);
+      const message = await simpleParser(raw);
+      if (message.subject.includes("LS Report")) {
+        const date = getDateFromHeaders(message);
         if (date) {
-          pars.receivedOn = date;
-          parsed.push(pars);
+          message.receivedOn = date;
+          const [_, num] = message.subject.match(/\d+ LS Report (\d+)/);
+          message.num = num;
+          const report = parse(message.text);
+          report.email = message;
+          reports.push(report);
         } else {
           throw new Error(
             "Couldn't find the date from these headers: " +
-              stringifyHeaders(pars.headers)
+              stringifyHeaders(message.headers)
           );
         }
       }

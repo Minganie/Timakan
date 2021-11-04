@@ -1,17 +1,13 @@
 // const db = require("./db");
 
 async function save(report) {
-  const { email, levelsender, loggers } = report;
+  const { levelsender, levelogger, barologger, levelData, baroData } = report;
   const ls = levelsender;
-  const ll = loggers.find((l) => l.type.includes("Levelogger"));
-  if (!ll)
-    throw new Error("No Levelogger at " + report.levelsender.serial + "?");
-  const pl = loggers.find((l) => l.type.includes("Barologger"));
-  if (!pl)
-    throw new Error("No Barologger at " + report.levelsender.serial + "?");
+  const ll = levelogger;
+  const pl = barologger;
   const obj = {
     num: { dollar: email.num },
-    sent: { dollar: email.sent },
+    sent: { dollar: email.receivedOn },
     level_logger: { dollar: ll.serial },
     pressure_logger: { dollar: pl.serial },
     battery: { dollar: ls.battery },
