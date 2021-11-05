@@ -3,7 +3,7 @@ const save = require("./src/saver");
 const imaper = require("./src/imaper");
 const { empty, reread } = require("./src/rereader");
 const db = require("./src/db");
-const debug = require("debug")("timakan:main");
+const debug = require("debug")("timakan:readEmails");
 const txt = `
 
 LevelSender
@@ -73,7 +73,7 @@ Time, Temperature( C), Level(kPa)
 MESSAGES: Email report 16, LS reporting, L1 stopped, L2 stopped, 
 
 `;
-async function main() {
+async function readEmails() {
   // const report = parse(txt);
   // report.email = {
   //   num: 1,
@@ -87,4 +87,4 @@ async function main() {
   await db.end();
 }
 
-main().catch((e) => console.error(e));
+readEmails().catch((e) => console.error(e));
