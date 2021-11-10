@@ -1,5 +1,6 @@
 const { empty, reread } = require("./src/rereader");
 const db = require("./src/db");
+const { update } = require("./src/csvUpdater");
 
 async function main() {
   //TODO reset the sequence as postgres first
@@ -9,6 +10,8 @@ async function main() {
   */
   await empty();
   await reread();
+
+  await update();
 
   await db.end();
 }

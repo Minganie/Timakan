@@ -1,4 +1,5 @@
 const P = require("parsimmon");
+const db = require("./db");
 
 const regexes = {
   serial: /\s*Serial: (\d+)/,
@@ -10,7 +11,7 @@ const regexes = {
   state: /\s*State: ([a-z]+)/,
   startReport: /\s*Start Report: (\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2})/,
   logger: /\s*Logger (\d)/,
-  type: /\s*Location:.+?\s*Type: ([a-zA-Z0-9 ]+, [a-zA-Z0-9\.]+, [0-9\.]+)/,
+  type: /\s*Location:.*?\s*Type: ([a-zA-Z0-9 ]+, [a-zA-Z0-9\.]+, [0-9\.]+)/,
   logs: /\s*Total Logs: (\d+ of \d+)/,
   logRate: /\s*Log Rate: (\d+) seconds/,
   memoryMode: /\s*Memory Mode: ([a-z]+)/,
@@ -27,7 +28,15 @@ function shuffleDate(nobodyUsesThisFormat) {
   const [_, dd, mo, yyyy, hh, mi, ss] = nobodyUsesThisFormat.match(
     /(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})/
   );
-  return `${yyyy}-${mo}-${dd}T${hh}:${mi}:${ss}-05`;
+  return {
+    day: dd,
+    month: mo,
+    year: yyyy,
+    hour: hh,
+    minutes: mi,
+    seconds: ss,
+    string: `${yyyy}-${mo}-${dd}T${hh}:${mi}:${ss}`,
+  };
 }
 
 function splitLoggerType(mumbo) {
@@ -49,6 +58,14 @@ function getDurationMinutes(mumbo) {
   }
 }
 
+async function findOffset(date) {
+  const rows = await db.query(
+    `SELECT to_char('$1'::TIMESTAMP WITH TIME ZONE, 'OF') as offset`,
+    [date + "-05"]
+  );
+  return rows[0].offset;
+}
+
 function splitLogNumbers(mumbo) {
   const [_, n, total] = mumbo.match(/(\d+) of (\d+)/);
   return { n, total };
@@ -63,8 +80,10 @@ function parse(horror) {
         P.regexp(regexes.number).skip(P.optWhitespace)
       ).map((arr) => {
         const [timestamp, temp, other] = arr;
+        const dateBag = shuffleDate(timestamp);
         return {
-          timestamp: shuffleDate(timestamp),
+          dateBag,
+          timestamp: dateBag.string,
           temp: Number(temp),
           other: Number(other),
         };
@@ -105,6 +124,7 @@ function parse(horror) {
         ] = arr;
         const model = splitLoggerType(type);
         const { n, total } = splitLogNumbers(logs);
+        const dateBag = shuffleDate(startLogger);
         return {
           logger: Number(logger),
           ...model,
@@ -116,7 +136,8 @@ function parse(horror) {
           memoryMode,
           logType,
           state,
-          startLogger: shuffleDate(startLogger),
+          startLogger: dateBag.string,
+          dateBag,
         };
       }),
     LevelSender: (r) =>
@@ -142,6 +163,7 @@ function parse(horror) {
           state,
           startReport,
         ] = arr;
+        const dateBag = shuffleDate(startReport);
         return {
           serial,
           location,
@@ -150,7 +172,8 @@ function parse(horror) {
           reportRate: getDurationMinutes(reportRate),
           signalStrength,
           state,
-          startReport: shuffleDate(startReport),
+          startReport: dateBag.string,
+          dateBag,
         };
       }),
     report: (r) =>
@@ -160,10 +183,12 @@ function parse(horror) {
         r.Logger,
         r.dataSection,
         r.dataSection.skip(P.regexp(regexes.end)).skip(P.all)
-      ).map((arr) => {
+      ).map(async (arr) => {
         const [levelsender, l1, l2, sec1, sec2] = arr;
-        const levelogger = [l1, l2].find((l) => l.type.includes("Levelogger"));
-        const barologger = [l1, l2].find((l) => l.type.includes("Barologger"));
+        const levelogger = [l1, l2].find((l) =>
+          ["M5", "M10", "M20", "M30", "M100", "M200"].includes(l.model)
+        );
+        const barologger = [l1, l2].find((l) => l.model === "M1.5");
         if (!levelogger)
           throw new Error("No Levelogger for " + levelsender.serial);
         if (!barologger)
@@ -178,6 +203,16 @@ function parse(horror) {
           throw new Error("No Level data for " + levelsender.serial);
         if (!baroData)
           throw new Error("No pressure data for " + levelsender.serial);
+        const offset = await findOffset(levelsender.dateBag.string);
+        levelsender.startReport = levelsender.startReport + offset;
+        levelogger.startLogger = levelogger.startLogger + offset;
+        barologger.startLogger = barologger.startLogger + offset;
+        for (const line of levelData.data) {
+          line.timestamp = line.timestamp + offset;
+        }
+        for (const line of baroData.data) {
+          line.timestamp = line.timestamp + offset;
+        }
         return { levelsender, levelogger, barologger, levelData, baroData };
       }),
   });

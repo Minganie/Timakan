@@ -18,13 +18,12 @@ describe("imaper", () => {
       expect("Fetching failed: " + e.message).toBeFalsy();
     }
   });
-
-  it("can parse an email into a report", async () => {
+  it("skips LS test emails", async () => {
     try {
       const imaper = require("../src/imaper");
-      const messages = await imaper();
-      const report1 = messages.find((m) => m.subject.includes("LS Report 1"));
-      expect(report1).toBeTruthy();
+      const res = await imaper();
+      expect(res).toBeTruthy();
+      expect(res.length).toBeGreaterThan(0);
     } catch (e) {
       expect("Fetching failed: " + e.message).toBeFalsy();
     }
