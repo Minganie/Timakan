@@ -1,5 +1,5 @@
-const { beforeJulyTwentySecond } = require("../src/corrector");
-describe("corrector", () => {
+const { beforeJulyTwentySecond } = require("../src/zeroOffset362");
+describe("zeroOffset362", () => {
   let dateBag;
   beforeEach(() => {
     dateBag = { year: "2021", month: "07", day: "21" };

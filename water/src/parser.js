@@ -58,14 +58,6 @@ function getDurationMinutes(mumbo) {
   }
 }
 
-async function findOffset(date) {
-  const rows = await db.query(
-    `SELECT to_char('$1'::TIMESTAMP WITH TIME ZONE, 'OF') as offset`,
-    [date + "-05"]
-  );
-  return rows[0].offset;
-}
-
 function splitLogNumbers(mumbo) {
   const [_, n, total] = mumbo.match(/(\d+) of (\d+)/);
   return { n, total };
@@ -128,7 +120,7 @@ function parse(horror) {
         return {
           logger: Number(logger),
           ...model,
-          serial,
+          serial: Number(serial),
           battery: Number(battery),
           logs: Number(n),
           totalLogs: Number(total),
@@ -165,7 +157,7 @@ function parse(horror) {
         ] = arr;
         const dateBag = shuffleDate(startReport);
         return {
-          serial,
+          serial: Number(serial),
           location,
           battery: Number(battery),
           sampleRate: getDurationMinutes(sampleRate), // minutes
@@ -183,7 +175,7 @@ function parse(horror) {
         r.Logger,
         r.dataSection,
         r.dataSection.skip(P.regexp(regexes.end)).skip(P.all)
-      ).map(async (arr) => {
+      ).map((arr) => {
         const [levelsender, l1, l2, sec1, sec2] = arr;
         const levelogger = [l1, l2].find((l) =>
           ["M5", "M10", "M20", "M30", "M100", "M200"].includes(l.model)
@@ -203,16 +195,6 @@ function parse(horror) {
           throw new Error("No Level data for " + levelsender.serial);
         if (!baroData)
           throw new Error("No pressure data for " + levelsender.serial);
-        const offset = await findOffset(levelsender.dateBag.string);
-        levelsender.startReport = levelsender.startReport + offset;
-        levelogger.startLogger = levelogger.startLogger + offset;
-        barologger.startLogger = barologger.startLogger + offset;
-        for (const line of levelData.data) {
-          line.timestamp = line.timestamp + offset;
-        }
-        for (const line of baroData.data) {
-          line.timestamp = line.timestamp + offset;
-        }
         return { levelsender, levelogger, barologger, levelData, baroData };
       }),
   });

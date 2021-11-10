@@ -1,21 +1,25 @@
 const debug = require("debug")("timakan:rereader");
 const db = require("./db");
 const parse = require("./parser");
-const { correct } = require("./corrector");
+const { zeroOffset362 } = require("./zeroOffset362");
 
 async function empty() {
   await db.query("DELETE FROM corrected", []);
   await db.query("DELETE FROM corrected_rejected", []);
 }
 
-const levelQuery = `INSERT INTO corrected (moment, level, l_temp, email, station) VALUES 
+function levelQuery(obs) {
+  return `INSERT INTO corrected (moment, level, l_temp, email, station) VALUES 
 ('${obs.timestamp}'::TIMESTAMP WITH TIME ZONE, $1, $2, $3, (SELECT station FROM water_stations_levelsender WHERE levelsender=$4))
 ON CONFLICT (station, moment) DO UPDATE
 SET level=EXCLUDED.level, l_temp=EXCLUDED.l_temp`;
-const pressureQuery = `INSERT INTO corrected (moment, pressure, p_temp, email, station) VALUES 
+}
+function pressureQuery(obs) {
+  return `INSERT INTO corrected (moment, pressure, p_temp, email, station) VALUES 
 ('${obs.timestamp}'::TIMESTAMP WITH TIME ZONE, $1, $2, $3, (SELECT station FROM water_stations_levelsender WHERE levelsender=$4))
 ON CONFLICT (station, moment) DO UPDATE
 SET pressure=EXCLUDED.pressure, p_temp=EXCLUDED.p_temp`;
+}
 
 async function reread() {
   const query = "SELECT * FROM emails ORDER BY id";
@@ -23,11 +27,11 @@ async function reread() {
   for (const row of rows) {
     const body = row.body;
     let report = parse(body);
-    report = correct(report);
+    report = zeroOffset362(report);
 
     const ld = report.levelData;
     for (const obs of ld.data) {
-      await db.query(levelQuery, [
+      await db.query(levelQuery(obs), [
         obs.other,
         obs.temp,
         row.id,
@@ -37,7 +41,7 @@ async function reread() {
 
     const pd = report.baroData;
     for (const obs of pd.data) {
-      await db.query(pressureQuery, [
+      await db.query(pressureQuery(obs), [
         obs.other,
         obs.temp,
         row.id,

@@ -6,6 +6,7 @@ const { simpleParser } = require("mailparser");
 
 const { getDateFromHeaders } = require("./util");
 const parse = require("./parser");
+const { appendOffsetToTimestamps } = require("./appendOffsetToTimestamps");
 
 const raw = () => {
   return new Promise((resolve, reject) => {
@@ -90,8 +91,9 @@ const imaper = async () => {
         if (date) {
           message.receivedOn = date;
           const [_, num] = message.subject.match(/\d+ LS Report (\d+)/);
-          message.num = num;
-          const report = parse(message.text);
+          message.num = Number(num);
+          let report = parse(message.text);
+          report = await appendOffsetToTimestamps(report);
           report.email = message;
           reports.push(report);
         } else {
@@ -102,7 +104,7 @@ const imaper = async () => {
         }
       }
     }
-    return parsed;
+    return reports;
   } catch (e) {
     throw e;
   }

@@ -18,14 +18,4 @@ describe("imaper", () => {
       expect("Fetching failed: " + e.message).toBeFalsy();
     }
   });
-  it("skips LS test emails", async () => {
-    try {
-      const imaper = require("../src/imaper");
-      const res = await imaper();
-      expect(res).toBeTruthy();
-      expect(res.length).toBeGreaterThan(0);
-    } catch (e) {
-      expect("Fetching failed: " + e.message).toBeFalsy();
-    }
-  });
 });

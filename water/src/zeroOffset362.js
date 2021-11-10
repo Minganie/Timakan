@@ -10,7 +10,7 @@ function beforeJulyTwentySecond(dateBag) {
   return day <= 21;
 }
 
-function correct(report) {
+function zeroOffset362(report) {
   const { levelsender, levelData } = report;
 
   // because we had the zero level at -10 for a while...
@@ -24,4 +24,4 @@ function correct(report) {
   return report;
 }
 
-module.exports = { beforeJulyTwentySecond, correct };
+module.exports = { beforeJulyTwentySecond, zeroOffset362 };

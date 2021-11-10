@@ -43,12 +43,10 @@ function makeIsoStringSigh(mumbo) {
 }
 
 function getDateFromHeaders(message) {
-  const mumbo =
-    message &&
-    message.headers &&
-    message.headers.get("received") &&
-    message.headers.get("received").length &&
-    message.headers.get("received")[0];
+  let mumbo = message && message.headers && message.headers.get("received");
+  mumbo = mumbo.find((received) => {
+    return received.includes("from LS");
+  });
   if (mumbo) return makeIsoStringSigh(mumbo);
 }
 
