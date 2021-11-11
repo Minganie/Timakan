@@ -4,20 +4,22 @@ const db = require("./db");
 
 async function insertEmail(report) {
   try {
-    const { email, levelsender, levelogger, barologger, levelData, baroData } =
-      report;
+    const { email, levelsender, levelogger, barologger } = report;
     const ls = levelsender;
     const ll = levelogger;
     const pl = barologger;
     const obj = {
       num: { dollar: email.num },
-      sent: { dollar: email.receivedOn },
+      sent: { query: `'${email.receivedOn}'::TIMESTAMP WITH TIME ZONE` },
       level_logger: { dollar: ll.serial },
       pressure_logger: { dollar: pl.serial },
       battery: { dollar: ls.battery },
+      body: { dollar: email.text },
       sample_rate: { dollar: ls.sampleRate },
       report_rate: { dollar: ls.reportRate },
-      signal_strength: { dollar: ls.signalStrength },
+      signal_strength: {
+        query: ls.signalStrength ? String(ls.signalStrength) : "NULL",
+      },
       state: { dollar: ls.state },
       start_report: { query: `'${ls.startReport}'::TIMESTAMP WITH TIME ZONE` },
       ll_type: { dollar: ll.type },
@@ -29,7 +31,7 @@ async function insertEmail(report) {
       ll_rate: { dollar: ll.logRate },
       ll_mem: { dollar: ll.memoryMode },
       ll_log_type: { dollar: ll.logType },
-      ll_state: { dollar: ll.type },
+      ll_state: { dollar: ll.state },
       ll_start_logger: {
         query: `'${ll.startLogger}'::TIMESTAMP WITH TIME ZONE`,
       },
@@ -41,7 +43,7 @@ async function insertEmail(report) {
       pl_max_logs: { dollar: pl.totalLogs },
       pl_rate: { dollar: pl.logRate },
       pl_mem: { dollar: pl.memoryMode },
-      pl_log_type: { dollar: pl.memoryMode },
+      pl_log_type: { dollar: pl.logType },
       pl_state: { dollar: pl.state },
       pl_start_logger: {
         query: `'${pl.startLogger}'::TIMESTAMP WITH TIME ZONE`,
@@ -56,7 +58,7 @@ async function insertEmail(report) {
     let i = 1;
     for (const [k, v] of Object.entries(obj)) {
       fields.push(k);
-      if (v.dollar) {
+      if (v.hasOwnProperty("dollar")) {
         values.push("$" + i);
         array.push(v.dollar);
         ++i;
@@ -66,31 +68,11 @@ async function insertEmail(report) {
     }
     fields = fields.join(", ");
     values = values.join(", ");
-    console.log("fields");
-    console.log(fields);
-    console.log("values");
-    console.log(values);
-    console.log("array");
-    console.log(array);
-    const query =
-      "INSERT INTO emails (num, sent, level_logger, pressure_logger, battery, body, sample_rate," +
-      "report_rate, state, start_report, ll_type, ll_model, ll_v, ll_battery, ll_n_logs, ll_max_logs," +
-      "ll_rate, ll_mem, ll_log_type, ll_state, ll_start_logger, pl_type, pl_model, pl_v, pl_battery, pl_n_logs, pl_max_logs," +
-      "pl_rate, pl_mem, pl_log_type, pl_state, pl_start_logger, station) VALUES ($1, $2, $3, $4) RETURNING id";
-    const rows = [{ id: 1 }];
-    //const rows = await db.query(query, [
-    //   email.num,
-    //   email.sent,
-    //   ll.serial,
-    //   pl.serial,
-    //   ls.battery,
-    //   email.body,
-    //   ls.sampleRate,
-    //   ls.reportRate,
-    //   ls.state,
-    // ]);
+    const query = `INSERT INTO emails (${fields}) VALUES (${values}) RETURNING id`;
+    const rows = await db.query(query, array);
     return rows[0].id;
   } catch (e) {
+    e.report = report;
     throw e;
   }
 }
@@ -130,6 +112,7 @@ async function insertData(emailId, report) {
       ]);
     }
   } catch (e) {
+    e.report = report;
     throw e;
   }
 }
@@ -143,4 +126,4 @@ async function save(report) {
   }
 }
 
-module.exports = save;
+module.exports = { insertEmail, insertData, save };

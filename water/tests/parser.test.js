@@ -30,6 +30,18 @@ describe("parser", () => {
         expect(e.message).toBeFalsy();
       }
     });
+    it("can parse the text from the mailbox", async () => {
+      try {
+        const reports = await imaper();
+        const ls1 = reports.find(
+          (r) =>
+            r.email.subject === "284274 LS Report 1" &&
+            r.email.receivedOn === "2021-11-01T19:54:02+0000"
+        );
+      } catch (e) {
+        expect(e.message).toBeFalsy();
+      }
+    });
     it("can parse with a logger location", async () => {
       const rows = await db.query(
         "SELECT body FROM emails WHERE id=484040",
@@ -299,6 +311,37 @@ describe("parser", () => {
           if (!pressure.includes(line.other)) expect(line.other).toBe(false);
         }
       });
+    });
+  });
+  describe("deals with the timezone appropriately", () => {
+    it("tells this is EDT", async () => {
+      const rows = await db.query(
+        "SELECT body FROM emails WHERE id=523623",
+        []
+      );
+      const body = rows[0].body;
+      try {
+        let report = parse(body);
+        report = await appendOffsetToTimestamps(report);
+        const { levelData } = report;
+        const firstObs = levelData.data[0];
+        expect(firstObs.timestamp).toEqual("2021-10-25T04:00:00-04");
+      } catch (e) {
+        expect(e.message).toBeFalsy();
+      }
+    });
+    it("tells this is EST", async () => {
+      const rows = await db.query("SELECT body FROM emails WHERE id=1", []);
+      const body = rows[0].body;
+      try {
+        let report = parse(body);
+        report = await appendOffsetToTimestamps(report);
+        const { levelData } = report;
+        const firstObs = levelData.data[0];
+        expect(firstObs.timestamp).toEqual("2018-12-21T07:00:00-05");
+      } catch (e) {
+        expect(e.message).toBeFalsy();
+      }
     });
   });
 });

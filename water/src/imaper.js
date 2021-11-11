@@ -20,7 +20,7 @@ const raw = () => {
     });
 
     imap.once("ready", function () {
-      imap.openBox("INBOX", true, function (err, box) {
+      imap.openBox("INBOX", false, function (err, box) {
         if (err) return reject(err);
         const f = imap.seq.fetch("1:*", {
           bodies: "",
@@ -37,6 +37,11 @@ const raw = () => {
             });
             stream.once("end", function () {
               messages.push(buffer);
+              if (
+                process.env.NODE_ENV === "production" &&
+                buffer.includes("LS Report")
+              )
+                imap.seq.addFlags(seqno, "\\Deleted", (err) => reject(err));
               debug("streamed", prefix);
             });
           });
@@ -54,6 +59,7 @@ const raw = () => {
         });
         f.once("end", function () {
           debug("Done fetching all messages!");
+          imap.closeBox(true, (err) => reject(err));
           imap.end();
           resolve(messages);
         });
@@ -73,19 +79,13 @@ const raw = () => {
   });
 };
 
-function stringifyHeaders(headers) {
-  const json = {};
-  headers.forEach((v, k) => {
-    json[k] = v;
-  });
-  return JSON.stringify(json);
-}
-
 const imaper = async () => {
+  let msg;
   try {
     const raws = await raw();
     const reports = [];
     for (const raw of raws) {
+      msg = raw;
       const message = await simpleParser(raw);
       if (message.subject.includes("LS Report")) {
         const date = getDateFromHeaders(message);
@@ -98,15 +98,16 @@ const imaper = async () => {
           report.email = message;
           reports.push(report);
         } else {
-          throw new Error(
-            "Couldn't find the date from these headers: " +
-              stringifyHeaders(message.headers)
-          );
+          const e = new Error("Couldn't find the date from headers");
+          e.emailRaw = msg;
+          e.emailHeaders = message.headers;
+          throw e;
         }
       }
     }
     return reports;
   } catch (e) {
+    e.emailRaw = msg;
     throw e;
   }
 };

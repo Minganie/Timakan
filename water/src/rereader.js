@@ -16,15 +16,6 @@ ON CONFLICT (station, moment) DO UPDATE
 SET pressure=EXCLUDED.pressure, p_temp=EXCLUDED.p_temp`;
 }
 
-async function empty() {
-  try {
-    await db.query("DELETE FROM corrected", []);
-    await db.query("DELETE FROM corrected_rejected", []);
-  } catch (e) {
-    throw e;
-  }
-}
-
 async function reread() {
   try {
     const query = "SELECT * FROM emails ORDER BY id";
@@ -59,4 +50,4 @@ async function reread() {
   }
 }
 
-module.exports = { empty, reread };
+module.exports = reread;
