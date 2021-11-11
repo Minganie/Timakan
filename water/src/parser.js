@@ -162,7 +162,7 @@ function parse(horror) {
           battery: Number(battery),
           sampleRate: getDurationMinutes(sampleRate), // minutes
           reportRate: getDurationMinutes(reportRate),
-          signalStrength,
+          signalStrength: Number(signalStrength),
           state,
           startReport: dateBag.string,
           dateBag,

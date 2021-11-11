@@ -7,6 +7,7 @@ const { simpleParser } = require("mailparser");
 const { getDateFromHeaders } = require("./util");
 const parse = require("./parser");
 const { appendOffsetToTimestamps } = require("./appendOffsetToTimestamps");
+const Harpy = require("./Harpy");
 
 const raw = () => {
   return new Promise((resolve, reject) => {
@@ -60,7 +61,7 @@ const raw = () => {
     });
 
     imap.once("error", function (err) {
-      console.error(err);
+      Harpy.notify(err);
       reject(err);
     });
 

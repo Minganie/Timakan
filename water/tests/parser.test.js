@@ -128,7 +128,11 @@ describe("parser", () => {
     let report;
     beforeAll(async () => {
       const reports = await imaper();
-      report = reports.find((r) => r.email.subject === "284274 LS Report 1");
+      report = reports.find(
+        (r) =>
+          r.email.subject === "284274 LS Report 1" &&
+          r.email.receivedOn === "2021-11-01T19:54:02+0000"
+      );
       if (!report)
         throw new Error("No '284274 LS Report 1' email in scribe mailbox");
     });
@@ -163,6 +167,9 @@ describe("parser", () => {
       });
       it("report_rate", () => {
         expect(levelsender.reportRate).toBe(6 * 60);
+      });
+      it("signal_strength", () => {
+        expect(levelsender.signalStrength).toBe(3);
       });
       it("state", () => {
         expect(levelsender.state).toEqual("reporting");

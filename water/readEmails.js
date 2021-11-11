@@ -1,9 +1,11 @@
+const debug = require("debug")("timakan:readEmails");
+
+const db = require("./src/db");
+const { empty, reread } = require("./src/rereader");
+const Harpy = require("./src/Harpy");
+const imaper = require("./src/imaper");
 const parse = require("./src/parser");
 const save = require("./src/saver");
-const imaper = require("./src/imaper");
-const { empty, reread } = require("./src/rereader");
-const db = require("./src/db");
-const debug = require("debug")("timakan:readEmails");
 
 async function readEmails() {
   // const report = parse(txt);
@@ -16,4 +18,4 @@ async function readEmails() {
   await db.end();
 }
 
-readEmails().catch((e) => console.error(e));
+readEmails().catch((e) => Harpy.notify(e));

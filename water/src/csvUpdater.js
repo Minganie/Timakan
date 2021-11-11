@@ -17,27 +17,35 @@ async function writeCsv(data, file) {
 }
 
 async function updateOne(gid) {
-  let rows = await db.query(
-    "SELECT moment, corrected FROM public.timakan_historic WHERE station=$1 ORDER BY moment",
-    [gid]
-  );
-  await writeCsv(rows, csvPath + gid + "_all.csv");
-  rows = await db.query(
-    "SELECT moment, q0, q10, q50, q90, q100, corrected FROM timakan_week where station=$1 ORDER BY moment",
-    [gid]
-  );
-  await writeCsv(rows, csvPath + gid + "_week.csv");
-  rows = await db.query(
-    "SELECT moment, q0, q10, q50, q90, q100, corrected FROM timakan_year WHERE station=$1 ORDER BY moment",
-    [gid]
-  );
-  await writeCsv(rows, csvPath + gid + "_year.csv");
+  try {
+    let rows = await db.query(
+      "SELECT moment, corrected FROM public.timakan_historic WHERE station=$1 ORDER BY moment",
+      [gid]
+    );
+    await writeCsv(rows, csvPath + gid + "_all.csv");
+    rows = await db.query(
+      "SELECT moment, q0, q10, q50, q90, q100, corrected FROM timakan_week where station=$1 ORDER BY moment",
+      [gid]
+    );
+    await writeCsv(rows, csvPath + gid + "_week.csv");
+    rows = await db.query(
+      "SELECT moment, q0, q10, q50, q90, q100, corrected FROM timakan_year WHERE station=$1 ORDER BY moment",
+      [gid]
+    );
+    await writeCsv(rows, csvPath + gid + "_year.csv");
+  } catch (e) {
+    throw e;
+  }
 }
 
 async function update() {
-  const stations = await db.query("SELECT gid FROM water_stations", []);
-  for (const station of stations) {
-    await updateOne(station.gid);
+  try {
+    const stations = await db.query("SELECT gid FROM water_stations", []);
+    for (const station of stations) {
+      await updateOne(station.gid);
+    }
+  } catch (e) {
+    throw e;
   }
 }
 

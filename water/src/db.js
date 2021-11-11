@@ -1,5 +1,6 @@
 const { Pool } = require("pg");
 const { db } = require("config");
+const Harpy = require("./Harpy");
 
 const pool = new Pool({
   host: "localhost",
@@ -9,7 +10,7 @@ const pool = new Pool({
 });
 
 pool.on("error", (err, client) => {
-  console.error("Unexpected error on idle client", err);
+  Harpy.notify(err);
   process.exit(-1);
 });
 
@@ -18,7 +19,7 @@ const query = async (query, params) => {
     const { rows } = await pool.query(query, params);
     return rows;
   } catch (e) {
-    console.error(e);
+    throw e;
   }
 };
 

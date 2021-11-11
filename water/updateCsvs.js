@@ -1,3 +1,4 @@
 const { update } = require("./src/csvUpdater");
+const Harpy = require("./src/Harpy");
 
-update().catch((e) => console.error(e));
+update().catch((e) => Harpy.notify(e));
