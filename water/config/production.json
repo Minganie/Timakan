@@ -1,3 +1,6 @@
 {
-  "csvPath": "/var/www/html/csv/"
+  "csvPath": "/var/www/html/csv/",
+  "ftp": {
+    "path": "/"
+  }
 }

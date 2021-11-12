@@ -1,3 +1,6 @@
 {
-  "csvPath": "./csv/"
+  "csvPath": "./csv/",
+  "ftp": {
+    "path": "testftp/"
+  }
 }

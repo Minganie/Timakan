@@ -9,5 +9,9 @@
   },
   "bugsnag": {
     "apiKey": "TMKN_BUGSNAG"
+  },
+  "ftp": {
+    "user": "TMKN_FTP_USER",
+    "password": "TMKN_FTP_PW"
   }
 }

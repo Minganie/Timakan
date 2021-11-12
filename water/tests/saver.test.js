@@ -18,6 +18,17 @@ describe("saver", () => {
   afterAll(async () => {
     await db.end();
   });
+  beforeEach(async () => {
+    const rows = await db.query(
+      `SELECT id FROM emails WHERE station=$1 AND sent='${ts}'::TIMESTAMP WITH TIME ZONE`,
+      [station]
+    );
+    const id = rows && rows[0] && rows[0].id;
+    if (id) {
+      await db.query("DELETE FROM corrected WHERE email=$1", [id]);
+      await db.query("DELETE FROM emails WHERE id=$1", [id]);
+    }
+  });
   afterEach(async () => {
     const rows = await db.query(
       `SELECT id FROM emails WHERE station=$1 AND sent='${ts}'::TIMESTAMP WITH TIME ZONE`,
@@ -58,15 +69,31 @@ describe("saver", () => {
       expect(rows.length).toBe(1);
       report.levelogger.logs = 45;
     });
+    it("populates hm field on report", async () => {
+      await insertEmail(report);
+      expect(report.hm).toBeTruthy();
+      expect(report.hm.id).toBe(551);
+      expect(report.hm.today).toBeTruthy();
+    });
   });
-  it("saves the data", async () => {
-    const id = await insertEmail(report);
-    await insertData(id, report);
-    const rows = await db.query("SELECT * FROM corrected WHERE email=$1", [id]);
-    expect(rows.length).toBe(2);
-    for (const row of rows) {
-      expect(row.corrected).toBeGreaterThan(0);
-      expect(row.corrected).toBeLessThanOrEqual(1);
-    }
+  describe("saves the data", () => {
+    it("saves the data", async () => {
+      const id = await insertEmail(report);
+      await insertData(id, report);
+      const rows = await db.query("SELECT * FROM corrected WHERE email=$1", [
+        id,
+      ]);
+      expect(rows.length).toBe(2);
+      for (const row of rows) {
+        expect(row.corrected).toBeGreaterThan(0);
+        expect(row.corrected).toBeLessThanOrEqual(1);
+      }
+    });
+    it("populates hm.data field on report", async () => {
+      const id = await insertEmail(report);
+      await insertData(id, report);
+      expect(report.hm && report.hm.data).toBeTruthy();
+      expect(report.hm.data.length).toBe(2);
+    });
   });
 });
