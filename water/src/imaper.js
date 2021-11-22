@@ -54,7 +54,7 @@ const raw = () => {
           });
         });
         f.once("error", function (err) {
-          console.error("Fetch error: " + err);
+          Harpy.notify(err);
           reject(err);
         });
         f.once("end", function () {

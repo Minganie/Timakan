@@ -5,6 +5,7 @@ const Harpy = require("./src/Harpy");
 const imaper = require("./src/imaper");
 const { save } = require("./src/saver");
 const { send } = require("./src/ftper");
+const { update } = require("./src/csvUpdater");
 
 async function readEmails() {
   try {
@@ -13,6 +14,7 @@ async function readEmails() {
       await save(report);
       await send(report);
     }
+    await update();
   } catch (e) {
     throw e;
   } finally {

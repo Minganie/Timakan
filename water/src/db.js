@@ -11,7 +11,7 @@ const pool = new Pool({
 
 pool.on("error", (err, client) => {
   Harpy.notify(err);
-  process.exit(-1);
+  process.exitCode = -1;
 });
 
 const query = async (query, params) => {

@@ -72,7 +72,7 @@ async function insertEmail(report) {
     let rows = await db.query(query, array);
     const id = rows[0].id;
     rows = await db.query(
-      "SELECT to_char(NOW() AT TIME ZONE 'America/Montreal', 'DD_MM_YYYY') as today, hm_id FROM water_stations WHERE gid=(SELECT station FROM water_stations_levelsender WHERE levelsender=$1)",
+      "SELECT to_char(NOW() AT TIME ZONE 'UTC', 'DD_MM_YYYY_HH24_MI') as today, hm_id FROM water_stations WHERE gid=(SELECT station FROM water_stations_levelsender WHERE levelsender=$1)",
       [ls.serial]
     );
     report.hm = { id: rows[0].hm_id, today: rows[0].today };
@@ -93,7 +93,8 @@ function pressureQuery(obs) {
   return `INSERT INTO corrected (moment, pressure, p_temp, email, station) VALUES 
 ('${obs.timestamp}'::TIMESTAMP WITH TIME ZONE, $1, $2, $3, (SELECT station FROM water_stations_levelsender WHERE levelsender=$4))
 ON CONFLICT (station, moment) DO UPDATE
-SET pressure=EXCLUDED.pressure, p_temp=EXCLUDED.p_temp RETURNING to_char(moment AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS') as moment, l_temp, p_temp, corrected`;
+SET pressure=EXCLUDED.pressure, p_temp=EXCLUDED.p_temp 
+RETURNING to_char(moment AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS') as moment, l_temp, p_temp, corrected`;
 }
 
 async function insertData(emailId, report) {

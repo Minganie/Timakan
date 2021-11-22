@@ -1,5 +1,4 @@
 const P = require("parsimmon");
-const db = require("./db");
 
 const regexes = {
   serial: /\s*Serial: (\d+)/,

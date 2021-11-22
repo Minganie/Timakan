@@ -30,6 +30,7 @@ if (process.env.NODE_ENV === "production") {
       addReport(event);
       addEmail(event);
     },
+    logger: null,
   });
   Harpy.notify = Bugsnag.notify;
 } else {
