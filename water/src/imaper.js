@@ -22,47 +22,53 @@ const raw = () => {
     imap.once("ready", function () {
       imap.openBox("INBOX", false, function (err, box) {
         if (err) return reject(err);
-        const f = imap.seq.fetch("1:*", {
-          bodies: "",
-          struct: true,
-        });
-        const messages = [];
-        f.on("message", function (msg, seqno) {
-          debug("Message #" + seqno);
-          const prefix = "(#" + seqno + ") ";
-          msg.on("body", function (stream, info) {
-            let buffer = "";
-            stream.on("data", function (chunk) {
-              buffer += chunk.toString("utf8");
+        if (box.messages.total > 0) {
+          const f = imap.seq.fetch("1:*", {
+            bodies: "",
+            struct: true,
+          });
+          const messages = [];
+          f.on("message", function (msg, seqno) {
+            debug("Message #" + seqno);
+            const prefix = "(#" + seqno + ") ";
+            msg.on("body", function (stream, info) {
+              let buffer = "";
+              stream.on("data", function (chunk) {
+                buffer += chunk.toString("utf8");
+              });
+              stream.once("end", function () {
+                messages.push(buffer);
+                if (
+                  process.env.NODE_ENV === "production" &&
+                  buffer.includes("LS Report")
+                )
+                  imap.seq.addFlags(seqno, "\\Deleted", (err) => reject(err));
+                debug("streamed", prefix);
+              });
             });
-            stream.once("end", function () {
-              messages.push(buffer);
-              if (
-                process.env.NODE_ENV === "production" &&
-                buffer.includes("LS Report")
-              )
-                imap.seq.addFlags(seqno, "\\Deleted", (err) => reject(err));
-              debug("streamed", prefix);
+            msg.once("attributes", function (attrs) {
+              debug("gotten attributes");
+              // debug(prefix + "Attributes: %s" + inspect(attrs, false, 8));
+            });
+            msg.once("end", function () {
+              debug(prefix + "Finished");
             });
           });
-          msg.once("attributes", function (attrs) {
-            debug("gotten attributes");
-            // debug(prefix + "Attributes: %s" + inspect(attrs, false, 8));
+          f.once("error", function (err) {
+            Harpy.notify(err);
+            reject(err);
           });
-          msg.once("end", function () {
-            debug(prefix + "Finished");
+          f.once("end", function () {
+            debug("Done fetching all messages!");
+            imap.closeBox(true, (err) => reject(err));
+            imap.end();
+            resolve(messages);
           });
-        });
-        f.once("error", function (err) {
-          Harpy.notify(err);
-          reject(err);
-        });
-        f.once("end", function () {
-          debug("Done fetching all messages!");
+        } else {
           imap.closeBox(true, (err) => reject(err));
           imap.end();
-          resolve(messages);
-        });
+          resolve([]);
+        }
       });
     });
 
