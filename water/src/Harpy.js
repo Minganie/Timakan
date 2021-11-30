@@ -22,6 +22,13 @@ function addEmail(event) {
   }
 }
 
+function addCamera(event) {
+  const { originalError } = event;
+  if (originalError.camera) {
+    event.addMetadata("camera", originalError.camera);
+  }
+}
+
 if (process.env.NODE_ENV === "production") {
   const Bugsnag = require("@bugsnag/js");
   Bugsnag.start({

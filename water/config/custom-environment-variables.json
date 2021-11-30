@@ -13,5 +13,9 @@
   "ftp": {
     "user": "TMKN_FTP_USER",
     "password": "TMKN_FTP_PW"
+  },
+  "cameras": {
+    "user": "TMKN_CAM_USER",
+    "password": "TMKN_CAM_PW"
   }
 }

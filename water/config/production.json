@@ -2,5 +2,8 @@
   "csvPath": "/var/www/html/csv/",
   "ftp": {
     "path": "/"
+  },
+  "cameras": {
+    "path": "/var/www/html/surv_img/"
   }
 }
