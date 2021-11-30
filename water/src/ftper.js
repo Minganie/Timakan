@@ -38,7 +38,7 @@ function makeHmJson(report) {
           settable: false,
         },
         {
-          name: "RLS_Water_Level",
+          name: "Water_Level",
           type: "xsd:float",
           units: "M",
           process: "Smp",
