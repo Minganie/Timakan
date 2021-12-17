@@ -2,6 +2,7 @@ const {
   getMonth,
   makeIsoStringSigh,
   getDateFromHeaders,
+  makeShortString,
 } = require("../src/util");
 
 const oneNumberDay = `Received: from LS (unknown [67.69.76.207])
@@ -116,6 +117,26 @@ describe("util", () => {
     it("can get a date from headers", () => {
       const iso = getDateFromHeaders(msg);
       expect(iso).toEqual("2021-11-02T13:54:02+0000");
+    });
+  });
+  describe("makeShortString", () => {
+    it("gives a YYYY-mm-dd string", () => {
+      const ladate = "2011-10-10T14:48:00";
+      const d = new Date(ladate);
+      const s = makeShortString(d);
+      expect(s).toEqual("2011-10-10");
+    });
+    it("pads short days", () => {
+      const ladate = "2011-10-01T14:48:00";
+      const d = new Date(ladate);
+      const s = makeShortString(d);
+      expect(s).toEqual("2011-10-01");
+    });
+    it("pads short months", () => {
+      const ladate = "2011-01-10T14:48:00";
+      const d = new Date(ladate);
+      const s = makeShortString(d);
+      expect(s).toEqual("2011-01-10");
     });
   });
 });

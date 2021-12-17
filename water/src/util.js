@@ -42,6 +42,13 @@ function makeIsoStringSigh(mumbo) {
   return `${yyyy}-${mo}-${dd}T${hh}:${mi}:${ss}${tz}`;
 }
 
+function makeShortString(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 function getDateFromHeaders(message) {
   let mumbo = message && message.headers && message.headers.get("received");
   mumbo = mumbo.find((received) => {
@@ -54,4 +61,5 @@ module.exports = {
   getMonth,
   makeIsoStringSigh,
   getDateFromHeaders,
+  makeShortString,
 };

@@ -5,5 +5,9 @@
   },
   "cameras": {
     "path": "./images/"
+  },
+  "backup": {
+    "pg_dump": "D:\\Programmes\\PostgreSQL\\13\\bin\\pg_dump.exe",
+    "folder": "./backup/"
   }
 }

@@ -5,5 +5,8 @@
   },
   "cameras": {
     "path": "/var/www/html/surv_img/"
+  },
+  "backup": {
+    "folder": "/home/timakan/backup/"
   }
 }
