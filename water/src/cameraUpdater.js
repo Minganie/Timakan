@@ -44,10 +44,7 @@ async function updateOneCamera(cam) {
 }
 
 async function updateCameras() {
-  const cams = await db.query(
-    "SELECT * FROM camera_stations WHERE serial<>2",
-    []
-  );
+  const cams = await db.query("SELECT * FROM camera_stations", []);
   const errors = [];
   for (const cam of cams) {
     try {
