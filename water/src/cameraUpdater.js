@@ -18,6 +18,7 @@ async function updateOneCamera(cam) {
     const res = await axios.get(
       "http://" + cam.ip + "/Streaming/channels/1/picture",
       {
+        timeout: 10000,
         auth: {
           username: cameras.user,
           password: cameras.password,
